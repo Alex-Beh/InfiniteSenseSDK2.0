@@ -1,19 +1,43 @@
 #include "infinite_sense.h"
-#include <thread>
 using namespace infinite_sense;
 int main() {
+
+  // 1.创建同步器
   Synchronizer synchronizer;
-  // use net link
-  // synchronizer.SetNetLink("192.168.1.188", 8888);
-  // use serial link
-  synchronizer.SetSerialLink("/dev/ttyACM0",460800);
-  // use mv camera
-  // synchronizer.UseMvCam();
+  /*
+   使用网口连接
+   synchronizer.SetNetLink("192.168.1.188", 8888);
+  */
+  // 使用USB连接
+  synchronizer.SetSerialLink("/dev/ttyACM0", 460800);
+  /*
+    如使用工业相机, 需要指定 相机名称 和 同步板的触发端口
+    std::map<std::string, TriggerDevice> params;
+    params["camera_1"] = TriggerDevice::CAM_1; //camera_1:表示设备的名称，TriggerDevice::CAM_1:使用同步板CAM_1端口触发
+    synchronizer.UseMvCam(params);
+  */
+
+  // 2.开启同步
   synchronizer.Start();
+
+  // 3.订阅数据
   Synchronizer::PrintSummary();
+  zmq::context_t context(1);
+  zmq::socket_t subscriber(context, zmq::socket_type::sub);
+  subscriber.connect("tcp://localhost:5555");
+
+  const std::string topic = "imu_1";   // 订阅特定主题（如,板载IMU数据： "imu_1"）
+  subscriber.setsockopt(ZMQ_SUBSCRIBE, topic.c_str(), topic.size());
+  zmq::message_t msg;
   while (true) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
+    if (subscriber.recv(msg, zmq::recv_flags::dontwait)) {
+      if (subscriber.get(zmq::sockopt::rcvmore)) {
+        zmq::message_t dummy;
+        subscriber.recv(dummy);
+      }
+    }
   }
+  // 4.停止同步
   synchronizer.Stop();
   return 0;
 }
