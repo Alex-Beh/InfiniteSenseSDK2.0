@@ -12,6 +12,9 @@ endif ()
 
 add_subdirectory(infinite_sense_core)
 
+add_subdirectory(tools)
+add_subdirectory(example)
+
 find_package(ZeroMQ QUIET)
 if (ZeroMQ_FOUND)
   message(STATUS "ZMQ found, Compiling ZMQ nodes")

@@ -1,16 +1,16 @@
 #pragma once
 #include "log.h"
-#include "data.h"
+#include "config.h"
 #include "messenger.h"
-
+#include "sensor.h"
+#include "trigger.h"
 namespace infinite_sense {
 
 class NetManager;
-class SerialManager;
-class CamManger;
+class UsbManager;
+class Sensor;
 class TriggerManger;
 class Messenger;
-
 /**
  * @class Synchronizer
  * @brief 同步器类，负责统一协调网络、串口、相机等模块的启动与配置，管理多传感器系统的时间同步。
@@ -48,7 +48,7 @@ class Synchronizer {
    * @param serial_dev 串口设备名称（如 "/dev/ttyUSB0"）。
    * @param serial_baud_rate 波特率（如 115200）。
    */
-  void SetSerialLink(std::string serial_dev, int serial_baud_rate);
+  void SetUsbLink(std::string serial_dev, int serial_baud_rate);
 
   /**
    * @brief 配置网络连接参数。
@@ -59,26 +59,11 @@ class Synchronizer {
   void SetNetLink(std::string net_dev, unsigned int port);
 
   /**
-   * @brief 使用 MV（迈德威视）相机，并配置其对应的触发设备。
+   * @brief 使用传感器，并配置其对应的触发设备。
    *
-   * @param params 可选参数：映射相机名称到 TriggerDevice 枚举。
+   * @param sensor
    */
-  void UseMvCam(const std::map<std::string, TriggerDevice>& params = std::map<std::string, TriggerDevice>());
-
-  /**
-   * @brief 获取指定设备最近一次的触发时间（静态方法）。
-   *
-   * @param dev 查询的设备类型。
-   * @param time 返回对应的触发时间戳。
-   * @return true 如果查询成功（设备有触发记录）。
-   * @return false 如果设备无记录。
-   */
-  static bool GetLastTriggerTime(TriggerDevice dev, uint64_t time);
-
-  /**
-   * @brief 打印当前系统的配置与状态摘要信息。
-   */
-  static void PrintSummary();
+  void UseSensor(const std::shared_ptr<Sensor>&);
 
  private:
   /// 网络地址
@@ -97,10 +82,10 @@ class Synchronizer {
   std::shared_ptr<NetManager> net_manager_{nullptr};
 
   /// 串口管理器
-  std::shared_ptr<SerialManager> serial_manager_{nullptr};
+  std::shared_ptr<UsbManager> serial_manager_{nullptr};
 
   /// 相机管理器
-  std::shared_ptr<CamManger> cam_manager_{nullptr};
+  std::shared_ptr<Sensor> sensor_manager_{nullptr};
 };
 
 }  // namespace infinite_sense
