@@ -2,6 +2,16 @@
 
 namespace infinite_sense {
 
+std::map<TriggerDevice, std::string> device_map_topics{
+    {IMU_1, "imu_1_trigger"},
+    {IMU_2, "imu_2_trigger"},
+    {CAM_1, "cam_1_trigger"},
+    {CAM_2, "cam_2_trigger"},
+    {CAM_3, "cam_3_trigger"},
+    {CAM_4, "cam_4_trigger"},
+    {LASER, "laser_trigger"},
+    {GPS, "gps_trigger"}};
+
 TriggerManger::TriggerManger() {
   uint64_t time = std::numeric_limits<uint64_t>::max();
   const std::tuple<bool, uint64_t> empty = std::tuple(0, time);
@@ -13,9 +23,6 @@ TriggerManger::TriggerManger() {
   status_map_[CAM_4] = empty;
   status_map_[LASER] = empty;
   status_map_[GPS] = empty;
-  device_topics_ = {{IMU_1, "trigger/imu_1"}, {IMU_2, "trigger/imu_2"}, {CAM_1, "trigger/cam_1"},
-                    {CAM_2, "trigger/cam_2"}, {CAM_3, "trigger/cam_3"}, {CAM_4, "trigger/cam_4"},
-                    {LASER, "trigger/laser"}, {GPS, "trigger/gps"}};
 }
 void TriggerManger::SetLastTriggerStatus(const uint64_t& time, const uint8_t& status) {
   std::lock_guard lock(lock_);
@@ -50,9 +57,9 @@ void TriggerManger::PublishDeviceStatus(const TriggerDevice dev, const uint64_t 
       uint64_t timestamp;
       bool status;
     } dev_data{time, status};
-    Messenger::GetInstance().PubStruct(device_topics_[dev], &dev_data, sizeof(DeviceStatus));
+    Messenger::GetInstance().PubStruct(device_map_topics[dev], &dev_data, sizeof(DeviceStatus));
   } catch (const std::exception& e) {
-    LOG(ERROR) << "Failed to publish " << device_topics_[dev] << " status: " << e.what();
+    LOG(ERROR) << "Failed to publish " << device_map_topics[dev] << " status: " << e.what();
   }
 }
 }  // namespace infinite_sense

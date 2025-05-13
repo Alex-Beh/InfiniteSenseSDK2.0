@@ -6,11 +6,10 @@ namespace infinite_sense {
 Messenger::Messenger() {
   try {
     endpoint_ = "tcp://127.0.0.1:4565";
-    context_ = zmq::context_t(1);
+    context_ = zmq::context_t(10);
     publisher_ = zmq::socket_t(context_, zmq::socket_type::pub);
     subscriber_ = zmq::socket_t(context_, zmq::socket_type::sub);
-
-    publisher_.connect(endpoint_);
+    publisher_.bind(endpoint_);
     subscriber_.connect(endpoint_);
 
     LOG(INFO) << "Connected to ZMQ endpoint: " << endpoint_;
@@ -27,13 +26,14 @@ void Messenger::CleanUp() {
     publisher_.close();
     subscriber_.close();
     context_.close();
-    for (auto& t : sub_threads_) {
-      if (t.joinable()) {
-        t.join();
+    for (auto& thread : sub_threads_) {
+      if (thread.joinable()) {
+        thread.join();
       }
     }
+    LOG(INFO) << "Messenger clean up successful";
   } catch (...) {
-    // 忽略析构期异常
+    LOG(ERROR) << "Messenger clean up error";
   }
 }
 
@@ -55,13 +55,10 @@ void Messenger::PubStruct(const std::string& topic, const void* data, size_t siz
   }
 }
 
-std::string Messenger::GetPubEndpoint() const { return endpoint_; }
-
 void Messenger::Sub(const std::string& topic, const std::function<void(const std::string&)>& callback) {
   sub_threads_.emplace_back([=, this]() {
     try {
-      zmq::context_t context = zmq::context_t(1);
-      zmq::socket_t subscriber(context, zmq::socket_type::sub);
+      zmq::socket_t subscriber(context_, zmq::socket_type::sub);
       subscriber.connect(endpoint_);
       subscriber.set(zmq::sockopt::subscribe, topic);
 
@@ -71,10 +68,10 @@ void Messenger::Sub(const std::string& topic, const std::function<void(const std
           LOG(WARNING) << "Subscription receive failed for topic: " << topic;
           continue;
         }
-
         std::string received_topic(static_cast<char*>(topic_msg.data()), topic_msg.size());
-        if (received_topic != topic) continue;
-
+        if (received_topic != topic) {
+          continue;
+        }
         std::string data(static_cast<char*>(data_msg.data()), data_msg.size());
         callback(data);
       }
@@ -91,17 +88,16 @@ void Messenger::SubStruct(const std::string& topic, const std::function<void(con
       zmq::socket_t subscriber(context, zmq::socket_type::sub);
       subscriber.connect(endpoint_);
       subscriber.set(zmq::sockopt::subscribe, topic);
-
       while (true) {
         zmq::message_t topic_msg, data_msg;
         if (!subscriber.recv(topic_msg) || !subscriber.recv(data_msg)) {
           LOG(WARNING) << "Subscription to topic [" << topic << "] failed.";
           continue;
         }
-
         std::string received_topic(static_cast<char*>(topic_msg.data()), topic_msg.size());
-        if (received_topic != topic) continue;
-
+        if (received_topic != topic) {
+          continue;
+        }
         callback(data_msg.data(), data_msg.size());
       }
     } catch (const zmq::error_t& e) {

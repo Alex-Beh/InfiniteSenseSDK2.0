@@ -17,8 +17,7 @@ inline void ProcessIMUData(const nlohmann::json &data) {
     return;
   }
   ImuData imu{};
-  const uint64_t time_stamp = data["t"];
-  imu.time_stamp_us = time_stamp;
+  imu.time_stamp_us = data["t"];
   imu.a[0] = data["d"][0];
   imu.a[1] = data["d"][1];
   imu.a[2] = data["d"][2];
@@ -30,7 +29,7 @@ inline void ProcessIMUData(const nlohmann::json &data) {
   imu.q[1] = data["q"][1];
   imu.q[2] = data["q"][2];
   imu.q[3] = data["q"][3];
-  Messenger::GetInstance().PubStruct("imu1", &imu, sizeof(imu));
+  Messenger::GetInstance().PubStruct("imu_1", &imu, sizeof(imu));
 };
 
 inline void ProcessGPSData(const nlohmann::json &data) {
@@ -51,6 +50,6 @@ inline void ProcessLOGData(const nlohmann::json &data) {
     return;
   }
   LOG(data["l"]) << data["msg"];
-};
+}
 
 }  // namespace infinite_sense
