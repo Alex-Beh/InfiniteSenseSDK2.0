@@ -3,3 +3,4 @@ project(example)
 
 add_subdirectory(GigeCam)
 add_subdirectory(CustomCam)
+add_subdirectory(ros2_example)
