@@ -11,10 +11,9 @@ Messenger::Messenger() {
     subscriber_ = zmq::socket_t(context_, zmq::socket_type::sub);
     publisher_.bind(endpoint_);
     subscriber_.connect(endpoint_);
-
-    LOG(INFO) << "Connected to ZMQ endpoint: " << endpoint_;
+    LOG(INFO) << "Link Net: " << endpoint_;
   } catch (const zmq::error_t& e) {
-    LOG(ERROR) << "ZMQ initialization error: " << e.what();
+    LOG(ERROR) << "Net initialization error: " << e.what();
     CleanUp();
   }
 }
@@ -39,6 +38,7 @@ void Messenger::CleanUp() {
 
 void Messenger::Pub(const std::string& topic, const std::string& metadata) {
   try {
+    std::lock_guard lock(mutex_);
     publisher_.send(zmq::buffer(topic), zmq::send_flags::sndmore);
     publisher_.send(zmq::buffer(metadata), zmq::send_flags::dontwait);
   } catch (const zmq::error_t& e) {
@@ -46,8 +46,9 @@ void Messenger::Pub(const std::string& topic, const std::string& metadata) {
   }
 }
 
-void Messenger::PubStruct(const std::string& topic, const void* data, size_t size) {
+void Messenger::PubStruct(const std::string& topic, const void* data, const size_t size) {
   try {
+    std::lock_guard lock(mutex_);
     publisher_.send(zmq::buffer(topic), zmq::send_flags::sndmore);
     publisher_.send(zmq::buffer(data, size), zmq::send_flags::dontwait);
   } catch (const zmq::error_t& e) {
@@ -56,20 +57,19 @@ void Messenger::PubStruct(const std::string& topic, const void* data, size_t siz
 }
 
 void Messenger::Sub(const std::string& topic, const std::function<void(const std::string&)>& callback) {
-  sub_threads_.emplace_back([=, this]() {
+  sub_threads_.emplace_back([this, topic, callback]() {
     try {
       zmq::socket_t subscriber(context_, zmq::socket_type::sub);
       subscriber.connect(endpoint_);
       subscriber.set(zmq::sockopt::subscribe, topic);
-
       while (true) {
         zmq::message_t topic_msg, data_msg;
         if (!subscriber.recv(topic_msg) || !subscriber.recv(data_msg)) {
           LOG(WARNING) << "Subscription receive failed for topic: " << topic;
           continue;
         }
-        std::string received_topic(static_cast<char*>(topic_msg.data()), topic_msg.size());
-        if (received_topic != topic) {
+        if (std::string received_topic(static_cast<char*>(topic_msg.data()), topic_msg.size());
+            received_topic != topic) {
           continue;
         }
         std::string data(static_cast<char*>(data_msg.data()), data_msg.size());
@@ -82,9 +82,9 @@ void Messenger::Sub(const std::string& topic, const std::function<void(const std
 }
 
 void Messenger::SubStruct(const std::string& topic, const std::function<void(const void*, size_t)>& callback) {
-  sub_threads_.emplace_back([=, this]() {
+  sub_threads_.emplace_back([this, topic, callback]() {
     try {
-      zmq::context_t context = zmq::context_t(1);
+      auto context = zmq::context_t(1);
       zmq::socket_t subscriber(context, zmq::socket_type::sub);
       subscriber.connect(endpoint_);
       subscriber.set(zmq::sockopt::subscribe, topic);
@@ -94,8 +94,8 @@ void Messenger::SubStruct(const std::string& topic, const std::function<void(con
           LOG(WARNING) << "Subscription to topic [" << topic << "] failed.";
           continue;
         }
-        std::string received_topic(static_cast<char*>(topic_msg.data()), topic_msg.size());
-        if (received_topic != topic) {
+        if (std::string received_topic(static_cast<char*>(topic_msg.data()), topic_msg.size());
+            received_topic != topic) {
           continue;
         }
         callback(data_msg.data(), data_msg.size());

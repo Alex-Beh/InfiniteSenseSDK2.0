@@ -6,18 +6,14 @@
 
 namespace infinite_sense {
 
-namespace {
 constexpr char func_name[] = "f";
 constexpr char func_type_a[] = "a";
 constexpr char func_type_b[] = "b";
-}  // namespace
 
-void Ptp::SetUsbPtr(const std::shared_ptr<serial::Serial>& serial_ptr) {
-  serial_ptr_ = serial_ptr;
-}
+void Ptp::SetUsbPtr(const std::shared_ptr<serial::Serial>& serial_ptr) { serial_ptr_ = serial_ptr; }
 
 void Ptp::SetNetPtr(const std::shared_ptr<UDPSocket>& net_ptr, const std::string& target_ip,
-                    unsigned short port) {
+                    const unsigned short port) {
   net_ptr_ = net_ptr;
   target_ip_ = target_ip;
   port_ = port;
@@ -56,7 +52,7 @@ void Ptp::HandleTimeSyncResponse(const nlohmann::json& data) {
       const int64_t delay = static_cast<int64_t>(t4 - t3 + time_t2_ - time_t1_) / 2;
       const int64_t offset = static_cast<int64_t>(time_t2_ - time_t1_ - t4 + t3) / 2;
 
-      nlohmann::json response = {
+      const nlohmann::json response = {
           {func_name, func_type_b},
           {func_type_a, delay},
           {func_type_b, offset},
@@ -73,7 +69,7 @@ void Ptp::HandleTimeSyncResponse(const nlohmann::json& data) {
 void Ptp::SendPtpData() const {
   const uint64_t mark = GetCurrentTimeUs();
 
-  nlohmann::json data = {
+  const nlohmann::json data = {
       {func_name, func_type_a},
       {func_type_a, mark},
   };
@@ -95,8 +91,7 @@ void Ptp::SendJson(const nlohmann::json& data) const {
 }
 
 uint64_t Ptp::GetCurrentTimeUs() {
-  return std::chrono::duration_cast<std::chrono::microseconds>(
-             std::chrono::system_clock::now().time_since_epoch())
+  return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
       .count();
 }
 

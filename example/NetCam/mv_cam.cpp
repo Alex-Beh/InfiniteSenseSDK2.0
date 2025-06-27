@@ -60,12 +60,10 @@ bool PrintDeviceInfo(const MV_CC_DEVICE_INFO *info) {
     LOG(INFO) << "  Device Model Name    : " << info->SpecialInfo.stGigEInfo.chModelName;
     LOG(INFO) << "  Current IP Address   : " << n_ip1 << "." << n_ip2 << "." << n_ip3 << "." << n_ip4;
     LOG(INFO) << "  User Defined Name    : " << info->SpecialInfo.stGigEInfo.chUserDefinedName;
-  }
-  else if (info->nTLayerType == MV_USB_DEVICE) {
+  } else if (info->nTLayerType == MV_USB_DEVICE) {
     LOG(INFO) << "  Device Model Name    : " << info->SpecialInfo.stUsb3VInfo.chModelName;
     LOG(INFO) << "  User Defined Name    : " << info->SpecialInfo.stUsb3VInfo.chUserDefinedName;
-  }
-  else {
+  } else {
     LOG(ERROR) << "[ERROR] Unsupported camera type!";
     return false;
   }
@@ -92,7 +90,7 @@ bool MvCam::Initialization() {
       PrintDeviceInfo(p_device_info);
     }
   } else {
-    LOG(ERROR) << "Find No Devices!";
+    LOG(ERROR) << "Not find GIGE or USB Cam Devices!";
     return false;
   }
   LOG(INFO) << "Number of cameras detected : " << st_device_list.nDeviceNum;
@@ -140,7 +138,7 @@ bool MvCam::Initialization() {
     if (MV_OK != rets_[i]) {
       LOG(ERROR) << "MV_CC_StartGrabbing fail! n_ret [" << rets_[i] << "]";
     }
-    LOG(INFO) << "Camera " << i << " opens to completion";
+    LOG(INFO) << "Camera " << i << " opens to completion.";
   }
   if (0 == st_device_list.nDeviceNum) {
     return true;
@@ -178,7 +176,7 @@ void MvCam::Stop() {
     LOG(INFO) << "Exit  " << i << "  cam ";
   }
 }
-void MvCam::Receive(void *handle, const std::string &name)  {
+void MvCam::Receive(void *handle, const std::string &name) {
   unsigned int last_count = 0;
   MV_FRAME_OUT st_out_frame;
   CamData cam_data;
@@ -194,14 +192,12 @@ void MvCam::Receive(void *handle, const std::string &name)  {
       }
       // 这里的time_stamp_us是相机触发时间，需要加上曝光时间的一半，以获得相机拍摄的时间
       if (params.find(name) == params.end()) {
-        LOG(ERROR) << "cam " << name << " not found!";
-      }
-      else {
+        LOG(ERROR) << "cam: " << name << " not found!";
+      } else {
         if (uint64_t time; GET_LAST_TRIGGER_STATUS(params[name], time)) {
           cam_data.time_stamp_us = time + static_cast<uint64_t>(expose_time.fCurValue / 2.);
-        }
-        else {
-          LOG(ERROR) << "cam " << name << " not found!";
+        } else {
+          LOG(ERROR) << "Trigger cam: " << name << " not found!";
         }
       }
       MvGvspPixelType en_dst_pixel_type = PixelType_Gvsp_Undefined;
@@ -220,13 +216,15 @@ void MvCam::Receive(void *handle, const std::string &name)  {
         cam_data.name = name;
         if (en_dst_pixel_type == PixelType_Gvsp_Mono8) {
           cam_data.image = GMat(st_out_frame.stFrameInfo.nHeight, st_out_frame.stFrameInfo.nWidth,
-                                GMatType<uint8_t, 1>::Type, st_out_frame.pBufAddr);
+                                GMatType<uint8_t, 1>::Type, st_out_frame.pBufAddr)
+                               .Clone();
         }
         if (en_dst_pixel_type == PixelType_Gvsp_RGB8_Packed) {
           cam_data.image = GMat(st_out_frame.stFrameInfo.nHeight, st_out_frame.stFrameInfo.nWidth,
-                                GMatType<uint8_t, 3>::Type, st_out_frame.pBufAddr);
+                                GMatType<uint8_t, 3>::Type, st_out_frame.pBufAddr)
+                               .Clone();
         }
-        messenger.PubStruct(name,&cam_data,sizeof(cam_data));
+        messenger.PubStruct(name, &cam_data, sizeof(cam_data));
         if (last_count == 0) {
           last_count = st_out_frame.stFrameInfo.nFrameNum;
         } else {
@@ -258,12 +256,15 @@ void MvCam::Start() {
     Enable();
     auto name = std::string(pst_value.chCurValue);
     if (name.empty()) {
-      static int cam_index{0};
+      // 相机名称默认从1开始
+      static int cam_index{1};
       name = "cam_" + std::to_string(cam_index++);
-      LOG(WARNING) << "Camera name is empty,create name " << name;
+      LOG(WARNING) << "Camera name is empty,Create new name: " << name;
+    } else {
+      LOG(INFO) << "Camera name is " << name;
     }
     cam_threads.emplace_back(&MvCam::Receive, this, handle, name);
-    LOG(INFO) << "Camera name is " << name << " start";
+    LOG(INFO) << "Camera " << name << " start.";
   }
 }
 }  // namespace infinite_sense

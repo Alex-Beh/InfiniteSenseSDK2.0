@@ -4,18 +4,18 @@
 #include "image.h"
 namespace infinite_sense {
 struct ImuData {
-  uint64_t time_stamp_us; // microseconds since start of recording
-  float temperature;      // temperature in Celsius
-  std::string name;       // imu name
-  float a[3];             // accelerometer
-  float g[3];             // gyroscope
-  float q[4];             // quaternion
+  uint64_t time_stamp_us;  // microseconds since start of recording
+  float temperature;       // temperature in Celsius
+  std::string name;        // imu name
+  float a[3];              // accelerometer
+  float g[3];              // gyroscope
+  float q[4];              // quaternion
 };
 
 struct CamData {
-  uint64_t time_stamp_us;   // microseconds since start of recording
-  std::string name;         // camera name
-  GMat image;               // image data
+  uint64_t time_stamp_us;  // microseconds since start of recording
+  std::string name;        // camera name
+  GMat image;              // image data
 };
 
 struct LaserData {
@@ -25,11 +25,9 @@ struct LaserData {
 
 struct GPSData {
   uint64_t time_stamp_us;
-  uint64_t gps_stamp_us;
-  uint64_t gps_stamp_us_trigger;
+  uint64_t trigger_time_us;
   std::string name;
-  float latitude;
-  float longitude;
+  std::string data;
 };
 
 enum TriggerDevice {

@@ -5,12 +5,13 @@
 
 namespace infinite_sense {
 
-NetManager::NetManager(std::string target_ip, unsigned short port) : port_(port), target_ip_(std::move(target_ip)) {
+NetManager::NetManager(std::string target_ip, const unsigned short port)
+    : port_(port), target_ip_(std::move(target_ip)) {
   net_ptr_ = std::make_shared<UDPSocket>();
   const uint64_t curr_time = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch())
           .count());
-  net_ptr_->sendTo(reinterpret_cast<const uint8_t*>(&curr_time), sizeof(curr_time), target_ip_, port_);
+  net_ptr_->sendTo(&curr_time, sizeof(curr_time), target_ip_, port_);
   ptp_ = std::make_unique<Ptp>();
   ptp_->SetNetPtr(net_ptr_, target_ip_, port_);
 }
@@ -54,7 +55,7 @@ void NetManager::Receive() const {
   unsigned short source_port = 0;
 
   while (started_) {
-    int size = net_ptr_->recvFrom(buffer.data(), k_buffer_size, source_address, source_port);
+    const int size = net_ptr_->recvFrom(buffer.data(), k_buffer_size, source_address, source_port);
     if (size <= 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
@@ -86,7 +87,7 @@ void NetManager::TimeStampSynchronization() const {
   while (started_) {
     try {
       ptp_->SendPtpData();
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));  // 限制频率，防止死循环占满 CPU
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     } catch (const std::exception& e) {
       LOG(ERROR) << "Timestamp sync error: " << e.what();
     }

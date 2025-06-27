@@ -1,12 +1,10 @@
 #pragma once
-#include <atomic>
 #include <log.h>
-#include <mutex>
 #include <thread>
 #include <zmq.hpp>
-#include <unordered_set>
-#include <unordered_map>
 #include <functional>
+#include <mutex>
+
 namespace infinite_sense {
 class Messenger {
  public:
@@ -26,6 +24,7 @@ class Messenger {
   Messenger();
   ~Messenger();
   void CleanUp();
+  std::mutex mutex_;
   zmq::context_t context_{};
   zmq::socket_t publisher_{}, subscriber_{};
   std::string endpoint_{};

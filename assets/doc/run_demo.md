@@ -8,21 +8,29 @@ cmake..
 ```
 # 编译运行
 ## 运行监听程序(可选)
-运行话题监听程序,可以帮助检查是否有数据接收与数据上传频率是否正常。
+运行话题监听程序,可以帮助检查是否有数据接收与数据上传频率是否正常，另外monitor也可显示SDK内部Topic的名称。
 ```bash
 cd build/tools
 ./monitor
 ```
+<p align="center">
+<img  style="width:30%;"  alt="monitor" src="../picture/monitor.png">
+</p>
+其中，cam_1_trigger (num: 20) 表示图像触发信号，cam_1 (num: 20) 表示图像帧数据。num表示一秒内接收的图像帧数，即频率为20Hz。
+
 ## 运行example中的程序
 ### 运行工业相机Demo
 ```bash
 cd build/examples/GigeCam
 ./gige_cam
 ```
-### 运行工业相机ROS节点
+## 运行工业相机ROS2节点
+### 查看IMU数据
+```bash
+  sudo apt-get install ros-${ROS_DISTRO}-imu-tools
+```
 
-
-
+#
 
 ##  使用SDKC++开发的基本流程如下：
 ```C++
