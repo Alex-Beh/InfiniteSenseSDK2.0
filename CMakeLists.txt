@@ -11,5 +11,6 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 add_subdirectory(infinite_sense_core)
+
 add_subdirectory(tools)
 add_subdirectory(example)
